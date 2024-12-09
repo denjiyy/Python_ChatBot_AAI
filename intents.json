@@ -1,83 +1,92 @@
-    {
+{
   "intents": [
     {
-      "tag": "greeting",
+      "tag": "personalized_music",
       "patterns": [
-        "Hi",
-        "Hey",
-        "How are you",
-        "Is anyone there?",
-        "Hello",
-        "Good day"
+        "I’m not sure what I want to listen to",
+        "Can you suggest a song just for me?",
+        "I like a lot of genres, what should I listen to?"
       ],
       "responses": [
-        "Hey :-)",
-        "Hello, thanks for visiting",
-        "Hi there, what can I do for you?",
-        "Hi there, how can I help?"
+        "I’ll learn about your tastes over time. Let’s start with a recommendation! Based on your mood, I’d suggest 'Blinding Lights' by The Weeknd. How does that sound?",
+        "I’ll track your preferences and get better at recommending music. For now, how about a chill song like 'Sunflower' by Post Malone?",
+        "Let’s discover some new tunes! I suggest 'Levitating' by Dua Lipa for an upbeat vibe! What do you think?"
       ]
     },
     {
-      "tag": "goodbye",
-      "patterns": ["Bye", "See you later", "Goodbye"],
+      "tag": "feedback",
+      "patterns": [
+        "I liked the song",
+        "I didn’t like the song",
+        "That song was perfect",
+        "Not my style"
+      ],
       "responses": [
-        "See you later, thanks for visiting",
-        "Have a nice day",
-        "Bye! Come back again soon."
+        "Awesome! I’m glad you liked it! I’ll remember that for future suggestions.",
+        "Not your style? Got it! I’ll adjust my recommendations next time.",
+        "Great! Your feedback helps me improve. I’ll keep suggesting more songs you’ll enjoy!"
       ]
     },
     {
-      "tag": "thanks",
-      "patterns": ["Thanks", "Thank you", "That's helpful", "Thank's a lot!"],
-      "responses": ["Happy to help!", "Any time!", "My pleasure"]
-    },
-    {
-      "tag": "items",
+      "tag": "user_interest",
       "patterns": [
-        "Which items do you have?",
-        "What kinds of items are there?",
-        "What do you sell?"
+        "I like pop music",
+        "I love rock",
+        "I enjoy jazz",
+        "I'm into hip-hop",
+        "I like chill music"
       ],
       "responses": [
-        "We sell coffee and tea",
-        "We have coffee and tea"
+        "Got it! I’ll suggest more pop, rock, or jazz songs based on what you like!",
+        "Cool! I’ll keep that in mind. Do you prefer more energetic or relaxing rock music?",
+        "Nice! I can recommend some great jazz artists for you. How about Miles Davis or John Coltrane?"
       ]
     },
     {
-      "tag": "payments",
+      "tag": "mood_based_music",
       "patterns": [
-        "Do you take credit cards?",
-        "Do you accept Mastercard?",
-        "Can I pay with Paypal?",
-        "Are you cash only?"
+        "I'm feeling happy today",
+        "I'm a bit sad",
+        "I'm excited!",
+        "I'm feeling relaxed",
+        "I'm in a party mood"
       ],
       "responses": [
-        "We accept VISA, Mastercard and Paypal",
-        "We accept most major credit cards, and Paypal"
+        "Since you're feeling happy, how about some upbeat pop tracks like 'Happy' by Pharrell Williams, 'Levitating' by Dua Lipa, 'Blinding Lights' by The Weeknd, or 'Can't Stop the Feeling' by Justin Timberlake?",
+        "If you're feeling down, try listening to calming acoustic or indie music, like 'Skinny Love' by Bon Iver, 'The A Team' by Ed Sheeran, 'Someone Like You' by Adele, or 'Happier' by Marshmello feat. Bastille.",
+        "Excited, huh? Let’s get your energy up with some high-energy EDM or rock like 'Titanium' by David Guetta, 'Uptown Funk' by Mark Ronson, 'Wake Me Up' by Avicii, or 'Don't Stop Me Now' by Queen.",
+        "Feeling relaxed? Try some lo-fi beats or chill jazz, like 'Autumn Leaves' by Miles Davis, 'All Blues' by Miles Davis, 'What a Wonderful World' by Louis Armstrong, or a lo-fi hip hop playlist.",
+        "Party mood? Let's turn it up with some dance music! How about 'Blinding Lights' by The Weeknd, 'Can't Stop the Feeling' by Justin Timberlake, 'Dynamite' by BTS, or 'Levitating' by Dua Lipa?"
       ]
     },
     {
-      "tag": "delivery",
+      "tag": "personalized_music",
       "patterns": [
-        "How long does delivery take?",
-        "How long does shipping take?",
-        "When do I get my delivery?"
+        "I’m not sure what I want to listen to",
+        "Can you suggest a song just for me?",
+        "I like a lot of genres, what should I listen to?"
       ],
       "responses": [
-        "Delivery takes 2-4 days",
-        "Shipping takes 2-4 days"
+        "I’ll learn about your tastes over time. Let’s start with a recommendation! Based on your mood, I’d suggest 'Blinding Lights' by The Weeknd, 'Levitating' by Dua Lipa, 'Good 4 U' by Olivia Rodrigo, or 'Save Your Tears' by The Weeknd.",
+        "I’ll track your preferences and get better at recommending music. For now, how about a chill song like 'Sunflower' by Post Malone, 'Circles' by Post Malone, 'Peaches' by Justin Bieber, or 'Lose Yourself' by Eminem?",
+        "Let’s discover some new tunes! I suggest 'Levitating' by Dua Lipa, 'Blinding Lights' by The Weeknd, 'Levitating' by Dua Lipa, 'Watermelon Sugar' by Harry Styles, or 'Don't Start Now' by Dua Lipa."
       ]
     },
     {
-      "tag": "funny",
+      "tag": "user_interest",
       "patterns": [
-        "Tell me a joke!",
-        "Tell me something funny!",
-        "Do you know a joke?"
+        "I like pop music",
+        "I love rock",
+        "I enjoy jazz",
+        "I'm into hip-hop",
+        "I like chill music"
       ],
       "responses": [
-        "Why did the hipster burn his mouth? He drank the coffee before it was cool.",
-        "What did the buffalo say when his son left for college? Bison."
+        "Got it! I’ll suggest more pop songs like 'Blinding Lights' by The Weeknd, 'Levitating' by Dua Lipa, 'Watermelon Sugar' by Harry Styles, or 'Stay' by Kid LAROI and Justin Bieber!",
+        "Cool! I’ll keep that in mind. Do you prefer more energetic rock music like 'Bohemian Rhapsody' by Queen or more alternative like 'Smells Like Teen Spirit' by Nirvana?",
+        "Nice! I can recommend some great jazz artists for you. How about Miles Davis, John Coltrane, or 'Take Five' by Dave Brubeck?",
+        "If you love hip-hop, how about 'Sicko Mode' by Travis Scott, 'Hotline Bling' by Drake, 'Money Trees' by Kendrick Lamar, or 'Goosebumps' by Travis Scott?",
+        "Got a chill mood? Let’s try 'Sunflower' by Post Malone, 'Lost in Japan' by Shawn Mendes, or some lo-fi beats."
       ]
     }
   ]

@@ -1,6 +1,5 @@
 import random
 import json
-
 import torch
 
 from model import NeuralNet
@@ -27,6 +26,28 @@ model.eval()
 
 bot_name = "Sam"
 print("Let's chat! (type 'quit' to exit)")
+
+# Load user preferences from file (or create if doesn't exist)
+try:
+    with open('user_preferences.json', 'r') as file:
+        user_preferences = json.load(file)
+except FileNotFoundError:
+    user_preferences = {"liked_genres": [], "liked_songs": [], "disliked_songs": []}
+
+
+def save_user_preferences():
+    with open('user_preferences.json', 'w') as file:
+        json.dump(user_preferences, file)
+
+
+def update_user_preferences(feedback, song):
+    if feedback == "liked":
+        user_preferences["liked_songs"].append(song)
+    elif feedback == "disliked":
+        user_preferences["disliked_songs"].append(song)
+    save_user_preferences()
+
+
 while True:
     sentence = input("You: ")
     if sentence == "quit":
@@ -44,9 +65,19 @@ while True:
 
     probs = torch.softmax(output, dim=1)
     prob = probs[0][predicted.item()]
+
     if prob.item() > 0.75:
         for intent in intents['intents']:
             if tag == intent["tag"]:
-                print(f"{bot_name}: {random.choice(intent['responses'])}")
+                response = random.choice(intent['responses'])
+                print(f"{bot_name}: {response}")
+
+                # If the intent is for music suggestions, handle feedback
+                if tag == "personalized_music":
+                    feedback = input("Did you like this song? (liked/disliked/skip): ").lower()
+                    if feedback in ["liked", "disliked"]:
+                        update_user_preferences(feedback, response.split("'")[1])  # Extract song name from response
+
+                break
     else:
         print(f"{bot_name}: I do not understand...")
