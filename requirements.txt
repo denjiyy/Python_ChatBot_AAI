@@ -1,4 +1,13 @@
-streamlit
-torch
-transformers
-scikit-learn
+import os
+import json
+import random
+import datetime
+import csv
+import ssl
+import streamlit as st
+from transformers import pipeline, DistilBertTokenizer, DistilBertForSequenceClassification, Trainer, TrainingArguments
+import re
+from fuzzywuzzy import fuzz
+import torch
+from sklearn.preprocessing import LabelEncoder
+from torch.utils.data import Dataset
