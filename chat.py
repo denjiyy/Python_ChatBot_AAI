@@ -1,83 +1,155 @@
-import random
+import os
 import json
-import torch
+import random
+import datetime
+import csv
+import ssl
+import streamlit as st
+from transformers import pipeline
+import re
+from fuzzywuzzy import fuzz
 
-from model import NeuralNet
-from nltk_utils import bag_of_words, tokenize
+ssl._create_default_https_context = ssl._create_unverified_context
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+file_path = os.path.abspath("./intents.json")
+with open(file_path, "r") as file:
+    intents = json.load(file)
 
-with open('intents.json', 'r') as json_data:
-    intents = json.load(json_data)
+model_path = './fine_tuned_model'
+nlp = pipeline("text-classification", model=model_path, tokenizer=model_path)
 
-FILE = "data.pth"
-data = torch.load(FILE)
+def chatbot(input_text):
+    prediction = nlp(input_text)
+    intent = prediction[0]['label']
 
-input_size = data["input_size"]
-hidden_size = data["hidden_size"]
-output_size = data["output_size"]
-all_words = data['all_words']
-tags = data['tags']
-model_state = data["model_state"]
+    matched_intent = None
+    for intent_data in intents['intents']:
+        if intent_data['tag'].lower() == intent.lower():
+            matched_intent = intent_data
+            break
 
-model = NeuralNet(input_size, hidden_size, output_size).to(device)
-model.load_state_dict(model_state)
-model.eval()
-
-bot_name = "Sam"
-print("Let's chat! (type 'quit' to exit)")
-
-# Load user preferences from file (or create if doesn't exist)
-try:
-    with open('user_preferences.json', 'r') as file:
-        user_preferences = json.load(file)
-except FileNotFoundError:
-    user_preferences = {"liked_genres": [], "liked_songs": [], "disliked_songs": []}
-
-
-def save_user_preferences():
-    with open('user_preferences.json', 'w') as file:
-        json.dump(user_preferences, file)
-
-
-def update_user_preferences(feedback, song):
-    if feedback == "liked":
-        user_preferences["liked_songs"].append(song)
-    elif feedback == "disliked":
-        user_preferences["disliked_songs"].append(song)
-    save_user_preferences()
-
-
-while True:
-    sentence = input("You: ")
-    if sentence == "quit":
-        break
-
-    sentence = tokenize(sentence)
-    X = bag_of_words(sentence, all_words)
-    X = X.reshape(1, X.shape[0])
-    X = torch.from_numpy(X).to(device)
-
-    output = model(X)
-    _, predicted = torch.max(output, dim=1)
-
-    tag = tags[predicted.item()]
-
-    probs = torch.softmax(output, dim=1)
-    prob = probs[0][predicted.item()]
-
-    if prob.item() > 0.75:
-        for intent in intents['intents']:
-            if tag == intent["tag"]:
-                response = random.choice(intent['responses'])
-                print(f"{bot_name}: {response}")
-
-                # If the intent is for music suggestions, handle feedback
-                if tag == "personalized_music":
-                    feedback = input("Did you like this song? (liked/disliked/skip): ").lower()
-                    if feedback in ["liked", "disliked"]:
-                        update_user_preferences(feedback, response.split("'")[1])  # Extract song name from response
-
+        for pattern in intent_data['patterns']:
+            if fuzz.ratio(pattern.lower(), input_text.lower()) > 80:
+                matched_intent = intent_data
                 break
+
+        if matched_intent:
+            break
+
+    if matched_intent:
+        response = random.choice(matched_intent['responses'])
+
     else:
-        print(f"{bot_name}: I do not understand...")
+        response = fallback_response()
+        learn_response = learn_from_user(input_text)
+        if learn_response:
+            response = learn_response
+
+    return response
+
+
+
+def fallback_response():
+    return "I'm not sure I understand. Could you please clarify or try asking something else?"
+
+
+def learn_from_user(input_text):
+    response = st.text_input(
+        f"I don't understand '{input_text}'. Would you like to add this to my knowledge? If yes, type the corresponding response.")
+
+    if response:
+        new_intent = {
+            "tag": "user_added_intent",
+            "patterns": [input_text],
+            "responses": [response]
+        }
+
+        # Append new intent to the JSON file
+        with open(file_path, "r") as file:
+            intents = json.load(file)
+
+        intents['intents'].append(new_intent)
+
+        with open(file_path, "w") as file:
+            json.dump(intents, file, indent=4)
+
+        return f"Thanks for helping me learn! I've added this to my knowledge: '{input_text}' with response: '{response}'"
+    return None
+
+
+def main():
+    st.title("Chatbot")
+
+    if "conversation" not in st.session_state:
+        st.session_state.conversation = []  # Track conversation history
+
+    # Hide Streamlit Menu for better UX
+    st.sidebar.markdown("# Menu")
+    menu = ["Home", "Conversation History", "About"]
+    choice = st.sidebar.radio("Go to", menu)
+
+    if choice == "Home":
+        st.subheader("Start Chatting")
+
+        if not os.path.exists('chat_log.csv'):
+            with open('chat_log.csv', 'w', newline='', encoding='utf-8') as csvfile:
+                csv_writer = csv.writer(csvfile)
+                csv_writer.writerow(['User Input', 'Chatbot Response', 'Timestamp'])
+
+        user_input = st.text_input("You:", "")
+
+        if user_input:
+            st.session_state.conversation.append(f"You: {user_input}")
+            response = chatbot(user_input)
+            st.session_state.conversation.append(f"Chatbot: {response}")
+
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            with open('chat_log.csv', 'a', newline='', encoding='utf-8') as csvfile:
+                csv_writer = csv.writer(csvfile)
+                csv_writer.writerow([user_input, response, timestamp])
+
+            for message in st.session_state.conversation:
+                st.write(message)
+
+            # End conversation if user says goodbye
+            if response.lower() in ['goodbye', 'bye']:
+                st.write("Thank you for chatting with me. Have a great day!")
+                st.session_state.conversation.clear()
+                st.stop()
+
+    elif choice == "Conversation History":
+        st.header("Conversation History")
+        with open('chat_log.csv', 'r', encoding='utf-8') as csvfile:
+            csv_reader = csv.reader(csvfile)
+            next(csv_reader)
+            for row in csv_reader:
+                st.text(f"User: {row[0]}")
+                st.text(f"Chatbot: {row[1]}")
+                st.text(f"Timestamp: {row[2]}")
+                st.markdown("---")
+
+    elif choice == "About":
+        st.header("About This Project")
+        st.write("""
+            This project aims to create a simple chatbot that can respond to user queries based on defined intents.
+            The chatbot uses a fine-tuned model to predict the intent of user inputs and provide corresponding responses.
+        """)
+
+        st.subheader("Technology Used:")
+        st.write("""
+            - **Streamlit**: Used for creating the interactive web interface.
+            - **Transformers (Hugging Face)**: Used for the pre-trained language model to handle intent classification.
+            - **CSV**: Used for logging user inputs and chatbot responses for conversation history.
+            - **Fuzzywuzzy**: Used to improve pattern matching and handle input variations.
+        """)
+
+        st.subheader("How It Works:")
+        st.write("""
+            1. The user interacts with the chatbot by typing in the input box.
+            2. The input is processed and classified based on pre-defined patterns in the intents JSON file.
+            3. The chatbot selects a response based on the intent prediction and displays it.
+            4. All conversations are logged into a CSV file for future reference.
+        """)
+
+if __name__ == '__main__':
+    main()

@@ -1,111 +1,71 @@
-import numpy as np
-import random
 import json
-
 import torch
-import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
+from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
+from transformers import Trainer, TrainingArguments
+from sklearn.preprocessing import LabelEncoder
+from torch.utils.data import Dataset
+import os
 
-from nltk_utils import bag_of_words, tokenize, stem
-from model import NeuralNet
+# Load intents from the JSON file
+file_path = os.path.abspath("./intents.json")
+with open(file_path, "r") as file:
+    intents = json.load(file)
 
-with open('intents.json', 'r') as f:
-    intents = json.load(f)
-
-all_words = []
+# Preprocess the data
+patterns = []
 tags = []
-xy = []
 for intent in intents['intents']:
-    tag = intent['tag']
-    tags.append(tag)
     for pattern in intent['patterns']:
-        w = tokenize(pattern)
-        all_words.extend(w)
-        xy.append((w, tag))
+        patterns.append(pattern)
+        tags.append(intent['tag'])
 
-ignore_words = ['?', '.', '!']
-all_words = [stem(w) for w in all_words if w not in ignore_words]
-all_words = sorted(set(all_words))
-tags = sorted(set(tags))
+# Tokenize the input data using DistilBERT tokenizer
+tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
+encodings = tokenizer(patterns, truncation=True, padding=True, max_length=32, return_tensors="pt")
 
-print(len(xy), "patterns")
-print(len(tags), "tags:", tags)
-print(len(all_words), "unique stemmed words:", all_words)
+# Encode the labels (tags)
+label_encoder = LabelEncoder()
+labels = label_encoder.fit_transform(tags)
 
-X_train = []
-y_train = []
-for (pattern_sentence, tag) in xy:
-    bag = bag_of_words(pattern_sentence, all_words)
-    X_train.append(bag)
-    label = tags.index(tag)
-    y_train.append(label)
+# Prepare the dataset for training
+class IntentDataset(Dataset):
+    def __init__(self, encodings, labels):
+        self.encodings = encodings
+        self.labels = labels
 
-X_train = np.array(X_train)
-y_train = np.array(y_train)
-
-num_epochs = 1000
-batch_size = 8
-learning_rate = 0.001
-input_size = len(X_train[0])
-hidden_size = 8
-output_size = len(tags)
-print(input_size, output_size)
-
-
-class ChatDataset(Dataset):
-
-    def __init__(self):
-        self.n_samples = len(X_train)
-        self.x_data = X_train
-        self.y_data = y_train
-
-    def __getitem__(self, index):
-        return self.x_data[index], self.y_data[index]
+    def __getitem__(self, idx):
+        item = {key: torch.tensor(val[idx]) for key, val in self.encodings.items()}
+        item['labels'] = torch.tensor(self.labels[idx])
+        return item
 
     def __len__(self):
-        return self.n_samples
+        return len(self.labels)
 
+dataset = IntentDataset(encodings, labels)
 
-dataset = ChatDataset()
-train_loader = DataLoader(dataset=dataset,
-                          batch_size=batch_size,
-                          shuffle=True,
-                          num_workers=0)
+# Load the DistilBERT model for sequence classification
+model = DistilBertForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=len(label_encoder.classes_))
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# Define training arguments
+training_args = TrainingArguments(
+    output_dir='./results',
+    num_train_epochs=3,
+    per_device_train_batch_size=8,
+    logging_dir='./logs',
+    evaluation_strategy="epoch",  # To evaluate the model at each epoch
+    save_strategy="epoch",  # Save after each epoch
+)
 
-model = NeuralNet(input_size, hidden_size, output_size).to(device)
+# Initialize the Trainer
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=dataset,
+)
 
-criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+# Train the model
+trainer.train()
 
-for epoch in range(num_epochs):
-    for (words, labels) in train_loader:
-        words = words.to(device)
-        labels = labels.to(dtype=torch.long).to(device)
-
-        outputs = model(words)
-        loss = criterion(outputs, labels)
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-    if (epoch + 1) % 100 == 0:
-        print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item():.4f}')
-
-print(f'final loss: {loss.item():.4f}')
-
-data = {
-    "model_state": model.state_dict(),
-    "input_size": input_size,
-    "hidden_size": hidden_size,
-    "output_size": output_size,
-    "all_words": all_words,
-    "tags": tags
-}
-
-FILE = "data.pth"
-torch.save(data, FILE)
-
-print(f'training complete. file saved to {FILE}')
+# Save the fine-tuned model and tokenizer
+model.save_pretrained("./fine_tuned_model")
+tokenizer.save_pretrained("./fine_tuned_model")
